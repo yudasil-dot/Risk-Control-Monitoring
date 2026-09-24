@@ -1,0 +1,1172 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Dashboard Risk & Portfolio Monitoring</title>
+    
+    <!-- Google Fonts & FontAwesome Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js & Plugin Datalabels CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    
+    <!-- html2pdf Library untuk Export ke PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, #023e68 0%, #005f73 45%, #0a9396 75%, #10b981 100%);
+            background-attachment: fixed;
+            color: #f8fafc;
+            padding: 20px;
+            min-height: 100vh;
+            font-size: 14px;
+        }
+
+        .dashboard-container {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            background: transparent;
+        }
+
+        /* Greeting Toast Notification */
+        .greeting-toast {
+            position: fixed;
+            top: -100px;
+            right: 28px;
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            color: #ffffff;
+            padding: 14px 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(12px);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 9999;
+            transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .greeting-toast.show {
+            top: 20px;
+        }
+
+        .greeting-toast i {
+            font-size: 20px;
+            color: #38bdf8;
+        }
+
+        .greeting-toast-text {
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        /* Card Base */
+        .card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 14px;
+            padding: 20px 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+
+        /* Header Section */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+            position: relative;
+        }
+
+        .header-top-right {
+            position: absolute;
+            top: 16px;
+            right: 24px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #38bdf8;
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+        }
+
+        .title-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .title-icon {
+            background: linear-gradient(135deg, #38bdf8, #0284c7);
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+        }
+
+        .title-text h1 {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+        }
+
+        .title-text p {
+            font-size: 13px;
+            color: #cbd5e1;
+            margin-top: 2px;
+        }
+
+        /* Filter Controls */
+        .filter-section {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+            width: 100%;
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+            justify-content: space-between;
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 8px 14px;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 8px;
+            font-size: 13px;
+            color: #e2e8f0;
+        }
+
+        .filter-item.primary-filter {
+            background: rgba(56, 189, 248, 0.15);
+            border: 1px solid rgba(56, 189, 248, 0.4);
+        }
+
+        .filter-item label {
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        .filter-item select {
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            font-weight: 700;
+            color: #38bdf8;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .filter-item select option {
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.3);
+        }
+
+        .btn-download:hover {
+            background: linear-gradient(135deg, #0369a1, #075985);
+        }
+
+        /* Content Split Layout */
+        .content-split {
+            display: grid;
+            grid-template-columns: minmax(0, 3.2fr) minmax(0, 1.1fr);
+            gap: 20px;
+            align-items: stretch;
+        }
+
+        .table-section-wrapper {
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            padding: 18px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            width: 100%;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+            table-layout: fixed;
+        }
+
+        th {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            font-weight: 700;
+            padding: 10px 6px;
+            text-align: left;
+            border-bottom: 2px solid rgba(56, 189, 248, 0.3);
+            vertical-align: middle;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 1.25;
+        }
+
+        th:first-child { border-top-left-radius: 8px; }
+        th:last-child { border-top-right-radius: 8px; }
+
+        td {
+            padding: 10px 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            color: #f1f5f9;
+            vertical-align: middle;
+        }
+
+        tbody tr:hover {
+            background-color: rgba(255, 255, 255, 0.06);
+        }
+
+        .text-center { text-align: center; }
+        .text-right { text-align: right; }
+        .font-bold { font-weight: 700; }
+
+        .area-name {
+            font-weight: 700;
+            color: #ffffff;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        .plain-branches {
+            color: #cbd5e1;
+            font-size: 11px;
+            line-height: 1.4;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+
+        .badge-rate {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 4px;
+            background-color: rgba(52, 211, 153, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.35);
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .badge-unfit {
+            display: inline-block;
+            padding: 3px 6px;
+            border-radius: 4px;
+            background-color: rgba(244, 63, 94, 0.2);
+            color: #fb7185;
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            font-weight: 700;
+            font-size: 11px;
+        }
+
+        .total-row {
+            background-color: rgba(255, 255, 255, 0.08) !important;
+            font-weight: 800;
+            color: #ffffff;
+            font-size: 12px;
+        }
+        
+        .total-row td {
+            border-top: 2px solid rgba(255, 255, 255, 0.25);
+            border-bottom: none;
+            padding: 10px 8px;
+        }
+
+        /* Summary Sidebar & Metrics */
+        .metrics-block {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .metrics-section-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metrics-section-title span.highlight-area {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.15);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            display: inline-block;
+        }
+
+        .metrics-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .metrics-vertical {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            gap: 10px;
+        }
+
+        .metric-card {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 10px;
+            padding: 12px 14px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: #cbd5e1;
+        }
+
+        .metric-card.accent-amber::before { background-color: #fbbf24; }
+        .metric-card.accent-lime::before { background-color: #a3e635; }
+        .metric-card.accent-blue::before { background-color: #38bdf8; }
+        .metric-card.accent-indigo::before { background-color: #34d399; }
+
+        .metric-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2px;
+        }
+
+        .metric-title {
+            font-size: 11px;
+            font-weight: 800;
+            color: #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .metric-icon {
+            font-size: 13px;
+            color: #94a3b8;
+        }
+
+        .metric-value {
+            font-size: 18px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 2px;
+        }
+
+        .metric-subtext {
+            font-size: 10px;
+            color: #cbd5e1;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .progress-bar-bg {
+            height: 5px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.12);
+            border-radius: 3px;
+            margin-top: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #38bdf8;
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .chart-box {
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            padding: 14px 16px;
+            height: 270px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        }
+
+        .chart-title {
+            font-size: 13px;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            flex: 1;
+            width: 100%;
+        }
+
+        @media (max-width: 1280px) {
+            .content-split { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 1024px) {
+            .metrics-row { grid-template-columns: repeat(2, 1fr); }
+            .charts-grid { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 640px) {
+            .metrics-row { grid-template-columns: 1fr; }
+            .header-top-right { position: static; margin-bottom: 6px; }
+        }
+
+        .hide-for-pdf { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="greeting-toast" id="greetingToast">
+    <i class="fa-solid fa-circle-check"></i>
+    <div class="greeting-toast-text" id="toastText">Welcome to Monitoring Dashboard</div>
+</div>
+
+<div class="dashboard-container" id="dashboardArea">
+
+    <!-- Header Section -->
+    <div class="card header">
+        <div class="header-top-right">
+            <i class="fa-solid fa-building-columns"></i> Wholesale Development Department
+        </div>
+
+        <div class="title-section">
+            <div class="title-icon" id="headerIcon">
+                <i class="fa-solid fa-chart-line"></i>
+            </div>
+            <div class="title-text">
+                <h1 id="mainTitle">Dashboard DPD Monitoring</h1>
+                <p id="mainSubtitle">Analisis Debitur, Fasilitas, Pembayaran, dan Collectibility per SME Area</p>
+            </div>
+        </div>
+
+        <div class="filter-section">
+            <div class="filter-group">
+                <!-- Dropdown Pilih Jenis Monitoring -->
+                <div class="filter-item primary-filter">
+                    <i class="fa-solid fa-desktop" style="color: #38bdf8;"></i>
+                    <label for="selectJenisMonitoring">Monitoring:</label>
+                    <select id="selectJenisMonitoring" onchange="changeMonitoringType()">
+                        <option value="dpd">DPD Monitoring</option>
+                        <option value="b2b">Back-to-Back Monitoring</option>
+                        <option value="asuransi">Asuransi Kredit Monitoring</option>
+                        <option value="renewal">Renewal & Clean Up Monitoring</option>
+                    </select>
+                </div>
+                <!-- Filter Periode -->
+                <div class="filter-item">
+                    <i class="fa-regular fa-calendar-alt" style="color: #38bdf8;"></i>
+                    <label for="selectPeriode">Periode:</label>
+                    <select id="selectPeriode" onchange="updateDashboard()">
+                        <option value="semua">Semua Bulan</option>
+                        <option value="januari">Januari</option>
+                        <option value="februari">Februari</option>
+                        <option value="maret">Maret</option>
+                        <option value="april">April</option>
+                        <option value="mei">Mei</option>
+                        <option value="juni">Juni</option>
+                        <option value="juli">Juli</option>
+                        <option value="agustus">Agustus</option>
+                        <option value="september">September</option>
+                        <option value="oktober">Oktober</option>
+                        <option value="november">November</option>
+                        <option value="desember">Desember</option>
+                    </select>
+                </div>
+                <!-- Filter Area -->
+                <div class="filter-item">
+                    <i class="fa-solid fa-location-dot" style="color: #38bdf8;"></i>
+                    <label for="selectArea">SME Area:</label>
+                    <select id="selectArea" onchange="updateDashboard()">
+                        <option value="0">SME Area 1</option>
+                        <option value="1">SME Area 2</option>
+                        <option value="2">SME Area 3</option>
+                        <option value="3">SME Area 4</option>
+                        <option value="4">SME Area 5</option>
+                    </select>
+                </div>
+            </div>
+            <button class="btn-download" id="downloadBtn" onclick="exportToPDF()">
+                <i class="fa-solid fa-file-pdf"></i> Download PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Content Split Layout -->
+    <div class="content-split">
+        
+        <!-- Dynamic Table Overview -->
+        <div class="card table-section-wrapper">
+            <div class="section-header">
+                <div class="section-title" id="tableSectionTitle">
+                    <i class="fa-solid fa-table-list" style="color: #38bdf8;"></i> Overview
+                </div>
+            </div>
+            <div class="table-container">
+                <table>
+                    <thead id="tableHead">
+                        <!-- Dynamic Column Headers -->
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Metric Sidebar (Area Selected) -->
+        <div class="card metrics-block" style="display: flex; flex-direction: column; justify-content: space-between; padding: 14px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="metrics-section-title" style="font-size: 13px;">
+                    <i class="fa-solid fa-building-user" style="color: #a3e635;"></i> Summary Area
+                </div>
+                <div>
+                    <span id="selectedAreaLabel" class="highlight-area">SME Area 1</span>
+                </div>
+            </div>
+            
+            <div class="metrics-vertical">
+                <div class="metric-card accent-amber">
+                    <div class="metric-header">
+                        <span class="metric-title" id="labelAreaMetric1">DEBITUR (NoC)</span>
+                        <i class="fa-solid fa-user-tag metric-icon"></i>
+                    </div>
+                    <div class="metric-value" id="areaMetric1">0</div>
+                    <div class="metric-subtext" id="subAreaMetric1"><i class="fa-solid fa-circle-info"></i> CIF Aktif Area</div>
+                </div>
+
+                <div class="metric-card accent-lime">
+                    <div class="metric-header">
+                        <span class="metric-title" id="labelAreaMetric2">FASILITAS (NoA)</span>
+                        <i class="fa-solid fa-file-invoice metric-icon"></i>
+                    </div>
+                    <div class="metric-value" id="areaMetric2">0</div>
+                    <div class="metric-subtext" id="subAreaMetric2"><i class="fa-solid fa-circle-info"></i> Rek. Kredit Area</div>
+                </div>
+
+                <div class="metric-card accent-blue">
+                    <div class="metric-header">
+                        <span class="metric-title" id="labelAreaMetric3">SUDAH BAYAR</span>
+                        <i class="fa-solid fa-sliders metric-icon"></i>
+                    </div>
+                    <div class="metric-value" id="areaMetric3">0</div>
+                    <div class="metric-subtext" id="areaMetric3Sub"><i class="fa-solid fa-circle-info"></i> 0% Progres</div>
+                    <div class="progress-bar-bg">
+                        <div class="progress-bar-fill" id="areaRateProgressBar"></div>
+                    </div>
+                </div>
+
+                <div class="metric-card accent-indigo">
+                    <div class="metric-header">
+                        <span class="metric-title" id="labelAreaMetric4">OUTSTANDING</span>
+                        <i class="fa-solid fa-money-bill-wave metric-icon"></i>
+                    </div>
+                    <div class="metric-value" style="font-size: 13px;" id="areaMetric4">Rp 0</div>
+                    <div class="metric-subtext" id="subAreaMetric4"><i class="fa-solid fa-circle-info"></i> Portfolio Baki Debet</div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Summary Gabungan SME Area -->
+    <div class="metrics-block">
+        <div class="metrics-section-title">
+            <i class="fa-solid fa-chart-pie" style="color: #38bdf8;"></i> Summary Gabungan SME Area
+        </div>
+        <div class="metrics-row">
+            <div class="metric-card accent-amber">
+                <div class="metric-header">
+                    <span class="metric-title" id="labelGabMetric1">1. TOTAL DEBITUR (NoC)</span>
+                    <i class="fa-solid fa-users metric-icon"></i>
+                </div>
+                <div class="metric-value" id="gabMetric1">0</div>
+                <div class="metric-subtext" id="subGabMetric1"><i class="fa-solid fa-circle-info"></i> Unique CIF Gabungan</div>
+            </div>
+
+            <div class="metric-card accent-lime">
+                <div class="metric-header">
+                    <span class="metric-title" id="labelGabMetric2">2. TOTAL FASILITAS (NoA)</span>
+                    <i class="fa-solid fa-file-contract metric-icon"></i>
+                </div>
+                <div class="metric-value" id="gabMetric2">0</div>
+                <div class="metric-subtext" id="subGabMetric2"><i class="fa-solid fa-circle-info"></i> Rekening Kredit Aktif</div>
+            </div>
+
+            <div class="metric-card accent-blue">
+                <div class="metric-header">
+                    <span class="metric-title" id="labelGabMetric3">3. SUDAH LAKUKAN PEMBAYARAN</span>
+                    <i class="fa-solid fa-percent metric-icon"></i>
+                </div>
+                <div class="metric-value" id="gabMetric3">0</div>
+                <div class="metric-subtext" id="gabMetric3Sub"><i class="fa-solid fa-circle-info"></i> 0% Kesesuaian</div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="rateProgressBar"></div>
+                </div>
+            </div>
+
+            <div class="metric-card accent-indigo">
+                <div class="metric-header">
+                    <span class="metric-title" id="labelGabMetric4">4. OUTSTANDING</span>
+                    <i class="fa-solid fa-wallet metric-icon"></i>
+                </div>
+                <div class="metric-value" style="font-size: 15px;" id="gabMetric4">Rp 0</div>
+                <div class="metric-subtext" id="subGabMetric4"><i class="fa-solid fa-circle-info"></i> Baki Debet Portfolio</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic Charts Section -->
+    <div class="charts-grid">
+        <div class="chart-box">
+            <div class="chart-title" id="chartTitle1"><i class="fa-solid fa-chart-bar" style="color: #fbbf24;"></i> Debitur per SME Area</div>
+            <div class="chart-wrapper"><canvas id="chart1"></canvas></div>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-title" id="chartTitle2"><i class="fa-solid fa-chart-bar" style="color: #a3e635;"></i> Fasilitas per SME Area</div>
+            <div class="chart-wrapper"><canvas id="chart2"></canvas></div>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-title" id="chartTitle3"><i class="fa-solid fa-chart-bar" style="color: #38bdf8;"></i> Status Monitoring per SME Area</div>
+            <div class="chart-wrapper"><canvas id="chart3"></canvas></div>
+        </div>
+
+        <div class="chart-box">
+            <div class="chart-title" id="chartTitle4"><i class="fa-solid fa-chart-bar" style="color: #34d399;"></i> Outstanding per SME Area</div>
+            <div class="chart-wrapper"><canvas id="chart4"></canvas></div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    Chart.register(ChartDataLabels);
+
+    // Data Wilayah & Cabang
+    const areas = [
+        { name: 'SME Area 1', branches: ['Medan', 'Pekanbaru', 'Padang', 'Bandar Lampung', 'Palembang', 'Batam', 'Pontianak', 'Bogor', 'Bekasi', 'Cikarang', 'BSD City', 'Saharjo', 'S. Parman', 'Gunung Sahari', 'Kelapa Gading'] },
+        { name: 'SME Area 2', branches: ['Bandung', 'Karawang'] },
+        { name: 'SME Area 3', branches: ['Solo', 'Semarang', 'Yogyakarta'] },
+        { name: 'SME Area 4', branches: ['Surabaya', 'Malang', 'Denpasar', 'Mataram', 'Kupang'] },
+        { name: 'SME Area 5', branches: ['Banjarmasin', 'Balikpapan', 'Samarinda', 'Makassar', 'Palu', 'Manado'] }
+    ];
+
+    // Dataset Source 1: DPD
+    const datasetDPD = {
+        semua:    { debitur: [1801, 14, 7, 16, 4], fasilitas: [3563, 25, 17, 16, 7], rate: [1796, 6, 17, 8, 7], outstanding: [58246509002, 24590156039, 16033721664, 55335738327, 1059585213] },
+        januari:  { debitur: [443, 2, 0, 2, 0], fasilitas: [883, 2, 0, 2, 0], rate: [883, 2, 0, 2, 0], outstanding: [3315997308, 2589909881, 0, 344608564, 0] },
+        februari: { debitur: [438, 0, 0, 1, 0], fasilitas: [878, 0, 0, 1, 0], rate: [876, 0, 0, 1, 0], outstanding: [777092408, 0, 0, 300379310, 0] },
+        maret:    { debitur: [446, 1, 1, 4, 0], fasilitas: [887, 1, 1, 4, 0], rate: [7, 0, 1, 3, 0], outstanding: [12890251706, 4116166009, 537428296, 26381594328, 0] },
+        april:    { debitur: [446, 2, 1, 3, 0], fasilitas: [886, 7, 1, 3, 0], rate: [7, 0, 1, 0, 0], outstanding: [9097942140, 6750349628, 536635217, 9677564154, 0] },
+        mei:      { debitur: [8, 4, 3, 5, 1], fasilitas: [8, 9, 5, 5, 2], rate: [5, 2, 5, 2, 2], outstanding: [8873749546, 7429717705, 4976610693, 17622226137, 300000000] },
+        juni:     { debitur: [9, 3, 1, 1, 1], fasilitas: [9, 4, 5, 1, 2], rate: [6, 0, 5, 0, 2], outstanding: [9894380061, 1398813136, 5032534317, 1009365835, 300000000] },
+        juli:     { debitur: [11, 2, 1, 0, 2], fasilitas: [12, 2, 5, 0, 3], rate: [12, 2, 5, 0, 3], outstanding: [13397095834, 2305199681, 4950513140, 0, 459585213] },
+        agustus:  { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        september:{ debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        oktober:  { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        november: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        desember: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] }
+    };
+
+    // Dataset Source 2: Back-to-Back
+    const datasetB2B = {
+        semua:    { debitur: [80, 21, 7, 14, 33], fasilitas: [89, 28, 7, 14, 35], rate: [70, 26, 6, 9, 18], outstanding: [435655995002, 16595125000, 10485151216, 70837717105, 12716822761] },
+        januari:  { debitur: [17,  3, 1,  3,  6], fasilitas: [23,  4, 1,  3,  7], rate: [23,  4, 1, 2, 4],  outstanding: [126125252174, 2369025000, 1493146494, 10244337883, 5378008405] },
+        februari: { debitur: [13, 3, 1, 3, 5], fasilitas: [15, 4, 1, 3, 6], rate: [15, 4, 1, 2, 4],  outstanding: [119190433396, 2369025000, 1493726944, 10237583024, 2128226039] },
+        maret:    { debitur: [11, 3, 1, 3, 5], fasilitas: [12, 4, 1, 3, 5], rate: [12, 4, 1, 2, 3],  outstanding: [59449256060, 2369025000, 1500000000, 10230796198, 1102295748] },
+        april:    { debitur: [10, 3, 1, 2, 5], fasilitas: [10, 4, 1, 2, 5], rate: [8, 4, 1, 2, 4],  outstanding: [40641155549, 2369025000, 1499138889, 10125000000, 1059134266] },
+        mei:      { debitur: [10, 3, 1, 1, 4], fasilitas: [10, 4, 1, 1, 4], rate: [4, 3, 0, 1, 1],  outstanding: [40641155549, 2369025000, 1499138889, 10000000000, 1058134266] },
+        juni:     { debitur: [10, 3, 1, 1, 4], fasilitas: [10, 4, 1, 1, 4], rate: [4, 3, 1, 0, 1],  outstanding: [40564175067, 2375000000, 1500000000, 10000000000, 1017262257] },
+        juli:     { debitur: [9, 3, 1, 1, 4], fasilitas: [9, 4, 1, 1, 4], rate: [4, 4, 1, 0, 1],  outstanding: [9044567207, 2375000000, 1500000000, 10000000000, 973761780] },
+        agustus:  { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0],  outstanding: [0, 0, 0, 0, 0] },
+        september:{ debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0],  outstanding: [0, 0, 0, 0, 0] },
+        oktober:  { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0],  outstanding: [0, 0, 0, 0, 0] },
+        november: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0],  outstanding: [0, 0, 0, 0, 0] },
+        desember: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0],  outstanding: [0, 0, 0, 0, 0] }
+    };
+
+    // Dataset Source 3: Asuransi Kredit
+    const datasetAsuransi = {
+        semua:    { debitur: [68, 22, 10, 19, 18], fasilitas: [94, 32, 19, 20, 26], rate: [40, 22, 10, 9, 19], outstanding: [217994730909, 61667914263, 59004139720, 46820226500, 53900608561] },
+        januari:  { debitur: [2, 4, 2, 0, 0], fasilitas: [2, 8, 8, 0, 0], rate: [2, 6, 7, 0, 0], outstanding: [2976974000, 7682767400, 4689215000, 0, 0] },
+        februari: { debitur: [7, 3, 0, 0, 6], fasilitas: [7, 5, 0, 0, 10], rate: [4, 5, 0, 0, 8], outstanding: [48560423560, 3341572054, 0, 0, 23309561000] },
+        maret:    { debitur: [10, 1, 2, 3, 6], fasilitas: [18, 2, 2, 4, 9], rate: [18, 2, 2, 3, 8], outstanding: [31223912881, 1143800000, 28913960320, 6191900000, 17318914761] },
+        april:    { debitur: [15, 1, 1, 0, 1], fasilitas: [19, 1, 2, 0, 1], rate: [10, 1, 0, 0, 1], outstanding: [63446655058, 1940880400, 14008442400, 0, 816860000] },
+        mei:      { debitur: [9, 3, 2, 9, 2], fasilitas: [17, 3, 2, 9, 2], rate: [4, 2, 1, 5, 1], outstanding: [22207397950, 2771240176, 6756562000, 34125531500, 723850000] },
+        juni:     { debitur: [5, 1, 1, 2, 2], fasilitas: [6, 1, 1, 2, 3], rate: [2, 0, 0, 1, 1], outstanding: [11682473000, 1421750000, 177000000, 475625000, 10662664000] },
+        juli:     { debitur: [13, 5, 0, 5, 0], fasilitas: [17, 7, 0, 5, 0], rate: [0, 4, 0, 0, 0], outstanding: [32301576960, 20217560520, 0, 6027170000, 0] },
+        agustus:  { debitur: [7, 4, 2, 0, 1], fasilitas: [8, 5, 4, 0, 1], rate: [0, 2, 0, 0, 0], outstanding: [5595317500, 23148343713, 4458960000, 0, 1068758800] },
+        september:{ debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        oktober:  { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        november: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        desember: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] }
+    };
+
+    // Dataset Source 4: Renewal & Clean Up Monitoring
+    const datasetRenewal = {
+        semua:    { debitur: [306, 33, 23, 84, 26], fasilitas: [581, 39, 39, 299, 28], rate: [575, 38, 39, 297, 28], outstanding: [885198709623, 63952255403, 368817342050, 492094835046, 24315663360] },
+        januari:  { debitur: [58, 6, 3, 13, 2], fasilitas: [67, 7, 4, 28, 3], rate: [67, 7, 4, 28, 3], outstanding: [75996327090, 7132879714, 78172037568, 94116835800, 1254000000] },
+        februari: { debitur: [28, 4, 3, 7, 7], fasilitas: [28, 4, 3, 7, 7], rate: [27, 4, 3, 7, 7], outstanding: [69429697573, 10584074861, 37076595696, 25021922777, 8607183092] },
+        maret:    { debitur: [39, 2, 3, 11, 6], fasilitas: [95, 4, 5, 83, 7], rate: [93, 4, 5, 82, 7], outstanding: [202399993410, 2513332318, 28853230536, 93590614967, 6085230423] },
+        april:    { debitur: [38, 4, 2, 9, 4], fasilitas: [98, 4, 3, 17, 4], rate: [97, 4, 3, 17, 4], outstanding: [111282243360, 418784304, 1395070297, 17946322173, 4020000000] },
+        mei:      { debitur: [46, 6, 4, 16, 2], fasilitas: [109, 8, 6, 73, 2], rate: [109, 8, 6, 73, 2], outstanding: [147164283552, 5950977231, 51989818054, 101774400420, 1140000000] },
+        juni:     { debitur: [65, 3, 3, 15, 3], fasilitas: [130, 3, 9, 63, 3], rate: [130, 3, 9, 63, 3], outstanding: [140430325190, 1859636000, 66925039117, 97573756729, 1319249846] },
+        juli:     { debitur: [32, 8, 5, 13, 2], fasilitas: [54, 9, 9, 28, 2], rate: [52, 8, 9, 27, 2], outstanding: [138495839448, 35492606976, 104405550781, 62070982178, 1890000000] },
+        agustus:  { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        september:{ debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        oktober:  { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        november: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] },
+        desember: { debitur: [0, 0, 0, 0, 0], fasilitas: [0, 0, 0, 0, 0], rate: [0, 0, 0, 0, 0], outstanding: [0, 0, 0, 0, 0] }
+    };
+
+    const colors = ['#eab308', '#84cc16', '#38bdf8', '#38bdf8', '#94a3b8'];
+    let chart1, chart2, chart3, chart4;
+
+    const commonChartOptions = {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            datalabels: {
+                anchor: 'end',
+                align: 'end',
+                font: { family: 'Inter', weight: '700', size: 10 },
+                color: '#f8fafc',
+                formatter: (val) => val.toLocaleString('id-ID')
+            }
+        },
+        scales: {
+            x: {
+                grid: { color: 'rgba(255, 255, 255, 0.08)' },
+                ticks: { font: { family: 'Inter', size: 10 }, color: '#cbd5e1' }
+            },
+            y: {
+                grid: { display: false },
+                ticks: { font: { family: 'Inter', size: 10, weight: '600' }, color: '#e2e8f0' }
+            }
+        }
+    };
+
+    function initCharts() {
+        const labels = areas.map(a => a.name);
+        chart1 = new Chart(document.getElementById('chart1'), { type: 'bar', data: { labels: labels, datasets: [{ data: [], backgroundColor: colors, borderRadius: 4, barThickness: 10 }] }, options: commonChartOptions });
+        chart2 = new Chart(document.getElementById('chart2'), { type: 'bar', data: { labels: labels, datasets: [{ data: [], backgroundColor: colors, borderRadius: 4, barThickness: 10 }] }, options: commonChartOptions });
+        chart3 = new Chart(document.getElementById('chart3'), { 
+            type: 'bar', data: { labels: labels, datasets: [ { label: 'Sesuai/Bayar/Done', data: [], backgroundColor: '#38bdf8', borderRadius: 4, barThickness: 10 }, { label: 'Unfit/Progres', data: [], backgroundColor: '#fb7185', borderRadius: 4, barThickness: 10 } ] },
+            options: { ...commonChartOptions, plugins: { ...commonChartOptions.plugins, legend: { display: true, labels: { color: '#e2e8f0', font: { family: 'Inter', size: 10 } } } } }
+        });
+        chart4 = new Chart(document.getElementById('chart4'), {
+            type: 'bar', data: { labels: labels, datasets: [{ data: [], backgroundColor: colors, borderRadius: 4, barThickness: 10 }] },
+            options: { ...commonChartOptions, plugins: { ...commonChartOptions.plugins, datalabels: { anchor: 'end', align: 'end', font: { family: 'Inter', weight: '700', size: 9 }, formatter: (val) => Math.round(val / 1000000).toLocaleString('id-ID') } } }
+        });
+    }
+
+    function changeMonitoringType() {
+        const type = document.getElementById('selectJenisMonitoring').value;
+        const icon = document.getElementById('headerIcon');
+        const title = document.getElementById('mainTitle');
+        const subtitle = document.getElementById('mainSubtitle');
+        const toastText = document.getElementById('toastText');
+
+        if(type === 'dpd') {
+            icon.innerHTML = `<i class="fa-solid fa-chart-line"></i>`;
+            title.innerText = "Dashboard DPD Monitoring";
+            subtitle.innerText = "Analisis Debitur, Fasilitas, Pembayaran, dan Collectibility per SME Area";
+            toastText.innerText = "Welcome to Dashboard DPD Monitoring";
+        } else if(type === 'b2b') {
+            icon.innerHTML = `<i class="fa-solid fa-shield-halved"></i>`;
+            title.innerText = "Dashboard Back-to-Back Monitoring";
+            subtitle.innerText = "Analisis Debitur, Fasilitas, Rate Sesuai, Rate Tidak Sesuai, dan Outstanding per SME Area";
+            toastText.innerText = "Welcome to Dashboard Back-to-Back Monitoring";
+        } else if(type === 'asuransi') {
+            icon.innerHTML = `<i class="fa-solid fa-file-shield"></i>`;
+            title.innerText = "Dashboard Asuransi Kredit Monitoring";
+            subtitle.innerText = "Analisis Debitur, Perpanjangan Asuransi, dan Nilai Pertanggungan per SME Area";
+            toastText.innerText = "Welcome to Dashboard Asuransi Kredit Monitoring";
+        } else if(type === 'renewal') {
+            icon.innerHTML = `<i class="fa-solid fa-rotate"></i>`;
+            title.innerText = "Dashboard Renewal & Clean Up Monitoring";
+            subtitle.innerText = "Analisis Debitur, Perpanjangan Fasilitas Kredit, Fasilitas Clean Up dan Outstanding per SME Area";
+            toastText.innerText = "Welcome to Dashboard Renewal & Clean Up Monitoring";
+        }
+
+        showGreeting();
+        updateDashboard();
+    }
+
+    function updateDashboard() {
+        const type = document.getElementById('selectJenisMonitoring').value;
+        const selectedPeriode = document.getElementById('selectPeriode').value;
+        const selectedAreaVal = document.getElementById('selectArea').value;
+
+        let currentData = datasetDPD[selectedPeriode] || datasetDPD.semua;
+        if(type === 'b2b') currentData = datasetB2B[selectedPeriode] || datasetB2B.semua;
+        if(type === 'asuransi') currentData = datasetAsuransi[selectedPeriode] || datasetAsuransi.semua;
+        if(type === 'renewal') currentData = datasetRenewal[selectedPeriode] || datasetRenewal.semua;
+
+        const tableHead = document.getElementById('tableHead');
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = '';
+
+        // Configure Layout per Monitoring Type
+        if(type === 'dpd') {
+            document.getElementById('tableSectionTitle').innerHTML = `<i class="fa-solid fa-table-list" style="color: #38bdf8;"></i> DPD Overview`;
+            tableHead.innerHTML = `
+                <tr>
+                    <th style="width: 14%;">SME Area</th>
+                    <th style="width: 26%;">Cakupan Wilayah / Cabang</th>
+                    <th class="text-center" style="width: 10%;">Jumlah Debitur</th>
+                    <th class="text-center" style="width: 10%;">Jumlah Fasilitas</th>
+                    <th class="text-center" style="width: 9%;">Sudah Bayar</th>
+                    <th class="text-center" style="width: 9%;">Belum Bayar</th>
+                    <th class="text-center" style="width: 8%;">% Progres</th>
+                    <th class="text-right" style="width: 14%;">Outstanding (Rp)</th>
+                </tr>`;
+            
+            setMetricLabels("DEBITUR (NoC)", "FASILITAS (NoA)", "SUDAH BAYAR", "OUTSTANDING", "Kesesuaian DPD");
+            setChartTitles("Jumlah Debitur", "Jumlah Fasilitas", "Penyelesaian DPD", "Outstanding");
+
+        } else if(type === 'b2b') {
+            document.getElementById('tableSectionTitle').innerHTML = `<i class="fa-solid fa-table-list" style="color: #38bdf8;"></i> Back-to-Back Spread Monitoring`;
+            tableHead.innerHTML = `
+                <tr>
+                    <th style="width: 12%;">SME Area</th>
+                    <th style="width: 22%;">Cakupan Wilayah / Cabang</th>
+                    <th class="text-center" style="width: 8%;">Debitur</th>
+                    <th class="text-center" style="width: 8%;">Fasilitas</th>
+                    <th class="text-center" style="width: 9%;">Rate Sesuai</th>
+                    <th class="text-center" style="width: 9%;">% Sesuai</th>
+                    <th class="text-center" style="width: 9%;">Tidak Sesuai</th>
+                    <th class="text-center" style="width: 9%;">% Tdk Sesuai</th>
+                    <th class="text-right" style="width: 14%;">Outstanding (Rp)</th>
+                </tr>`;
+
+            setMetricLabels("DEBITUR AREA (NoC)", "FASILITAS AREA (NoA)", "RATE SESUAI AREA", "OUTSTANDING AREA", "Kesesuaian Suku Bunga");
+            setChartTitles("Debitur per SME Area", "Fasilitas per SME Area", "Rate Sesuai vs Tidak Sesuai", "Outstanding per SME Area");
+
+        } else if(type === 'asuransi') {
+            document.getElementById('tableSectionTitle').innerHTML = `<i class="fa-solid fa-table-list" style="color: #38bdf8;"></i> Asuransi Kredit Overview`;
+            tableHead.innerHTML = `
+                <tr>
+                    <th style="width: 14%;">SME Area</th>
+                    <th style="width: 24%;">Cakupan Wilayah</th>
+                    <th class="text-center" style="width: 10%;">Jumlah Debitur</th>
+                    <th class="text-center" style="width: 10%;">Polis Asuransi</th>
+                    <th class="text-center" style="width: 10%;">Sudah Diperpanjang</th>
+                    <th class="text-center" style="width: 10%;">Progres Diperpanjang</th>
+                    <th class="text-center" style="width: 8%;">% Penyelesaian</th>
+                    <th class="text-right" style="width: 14%;">Nilai Pertanggungan</th>
+                </tr>`;
+
+            setMetricLabels("JUMLAH DEBITUR", "POLIS ASURANSI", "POLIS DIPERPANJANG", "NILAI PERTANGGUNGAN", "Penyelesaian Asuransi");
+            setChartTitles("Debitur Asuransi", "Jumlah Polis Asuransi", "Progres Perpanjangan Polis", "Nilai Pertanggungan");
+
+        } else if(type === 'renewal') {
+            document.getElementById('tableSectionTitle').innerHTML = `<i class="fa-solid fa-table-list" style="color: #38bdf8;"></i> Renewal & Clean Up Overview`;
+            tableHead.innerHTML = `
+                <tr>
+                    <th style="width: 12%;">SME Area</th>
+                    <th style="width: 26%;">Cakupan Wilayah</th>
+                    <th class="text-center" style="width: 9%;">Jumlah Debitur</th>
+                    <th class="text-center" style="width: 9%;">Jumlah Fasilitas</th>
+                    <th class="text-center" style="width: 11%;">Done Renewal/Clean Up</th>
+                    <th class="text-center" style="width: 11%;">On Progress</th>
+                    <th class="text-center" style="width: 8%;">% Penyelesaian</th>
+                    <th class="text-right" style="width: 14%;">Outstanding (Rp)</th>
+                </tr>`;
+
+            setMetricLabels("JUMLAH DEBITUR", "JUMLAH FASILITAS", "RENEWAL & CLEAN UP DONE", "OUTSTANDING", "Penyelesaian Renewal & Clean Up");
+            setChartTitles("Jumlah Debitur", "Jumlah Fasilitas", "Status Renewal & Clean Up", "Outstanding");
+        }
+
+        // Render Table Body
+        let totDebitur = 0, totFasilitas = 0, totRate = 0, totRateUnfit = 0, totOutstanding = 0;
+        let unfitArray = [];
+
+        areas.forEach((area, i) => {
+            const deb = currentData.debitur[i];
+            const fas = currentData.fasilitas[i];
+            const rate = currentData.rate[i];
+            const unfit = fas - rate;
+            unfitArray.push(unfit);
+
+            const pctVal = fas > 0 ? ((rate / fas) * 100).toFixed(2) : "0.00";
+            const pct = pctVal + '%';
+            const pctUnfitVal = fas > 0 ? ((unfit / fas) * 100).toFixed(2) : "0.00";
+            const pctUnfit = pctUnfitVal + '%';
+
+            const out = currentData.outstanding[i];
+
+            totDebitur += deb;
+            totFasilitas += fas;
+            totRate += rate;
+            totRateUnfit += unfit;
+            totOutstanding += out;
+
+            const plainBranchList = area.branches.join(', ');
+
+            if(type === 'dpd' || type === 'asuransi' || type === 'renewal') {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><span class="area-name">${area.name}</span></td>
+                        <td><div class="plain-branches">${plainBranchList}</div></td>
+                        <td class="text-center">${deb.toLocaleString('id-ID')}</td>
+                        <td class="text-center">${fas.toLocaleString('id-ID')}</td>
+                        <td class="text-center">${rate.toLocaleString('id-ID')}</td>
+                        <td class="text-center">${unfit.toLocaleString('id-ID')}</td>
+                        <td class="text-center"><span class="badge-rate">${pct}</span></td>
+                        <td class="text-right font-bold">${out.toLocaleString('id-ID')}</td>
+                    </tr>`;
+            } else if(type === 'b2b') {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><span class="area-name">${area.name}</span></td>
+                        <td><div class="plain-branches">${plainBranchList}</div></td>
+                        <td class="text-center">${deb.toLocaleString('id-ID')}</td>
+                        <td class="text-center">${fas.toLocaleString('id-ID')}</td>
+                        <td class="text-center">${rate.toLocaleString('id-ID')}</td>
+                        <td class="text-center"><span class="badge-rate">${pct}</span></td>
+                        <td class="text-center">${unfit.toLocaleString('id-ID')}</td>
+                        <td class="text-center"><span class="badge-unfit">${pctUnfit}</span></td>
+                        <td class="text-right font-bold">${out.toLocaleString('id-ID')}</td>
+                    </tr>`;
+            }
+        });
+
+        // Total Row
+        const totPctVal = totFasilitas > 0 ? ((totRate / totFasilitas) * 100).toFixed(2) : "0.00";
+        const totPct = totPctVal + '%';
+        const totPctUnfitVal = totFasilitas > 0 ? ((totRateUnfit / totFasilitas) * 100).toFixed(2) : "0.00";
+        const totPctUnfit = totPctUnfitVal + '%';
+
+        if(type === 'dpd' || type === 'asuransi' || type === 'renewal') {
+            tbody.innerHTML += `
+                <tr class="total-row">
+                    <td class="font-bold" colspan="2">TOTAL GABUNGAN</td>
+                    <td class="text-center">${totDebitur.toLocaleString('id-ID')}</td>
+                    <td class="text-center">${totFasilitas.toLocaleString('id-ID')}</td>
+                    <td class="text-center">${totRate.toLocaleString('id-ID')}</td>
+                    <td class="text-center">${totRateUnfit.toLocaleString('id-ID')}</td>
+                    <td class="text-center"><span class="badge-rate" style="background:rgba(56, 189, 248, 0.25); color:#38bdf8; border-color:rgba(56, 189, 248, 0.4);">${totPct}</span></td>
+                    <td class="text-right">${totOutstanding.toLocaleString('id-ID')}</td>
+                </tr>`;
+        } else if(type === 'b2b') {
+            tbody.innerHTML += `
+                <tr class="total-row">
+                    <td class="font-bold" colspan="2">TOTAL GABUNGAN</td>
+                    <td class="text-center">${totDebitur.toLocaleString('id-ID')}</td>
+                    <td class="text-center">${totFasilitas.toLocaleString('id-ID')}</td>
+                    <td class="text-center">${totRate.toLocaleString('id-ID')}</td>
+                    <td class="text-center"><span class="badge-rate" style="background:rgba(56, 189, 248, 0.25); color:#38bdf8; border-color:rgba(56, 189, 248, 0.4);">${totPct}</span></td>
+                    <td class="text-center">${totRateUnfit.toLocaleString('id-ID')}</td>
+                    <td class="text-center"><span class="badge-unfit" style="background:rgba(244, 63, 94, 0.3); color:#fda4af; border-color:rgba(244, 63, 94, 0.5);">${totPctUnfit}</span></td>
+                    <td class="text-right">${totOutstanding.toLocaleString('id-ID')}</td>
+                </tr>`;
+        }
+
+        // Update Gabungan Metrics
+        document.getElementById('gabMetric1').innerText = totDebitur.toLocaleString('id-ID');
+        document.getElementById('gabMetric2').innerText = totFasilitas.toLocaleString('id-ID');
+        document.getElementById('gabMetric3').innerText = totRate.toLocaleString('id-ID');
+        document.getElementById('gabMetric3Sub').innerHTML = `<i class="fa-solid fa-circle-info"></i> ${totPct} ${getMetricSubSuffix(type)}`;
+        document.getElementById('rateProgressBar').style.width = `${totPctVal}%`;
+        document.getElementById('gabMetric4').innerText = 'Rp ' + totOutstanding.toLocaleString('id-ID');
+
+        // Update Specific Sidebar Area Metrics
+        const idx = parseInt(selectedAreaVal);
+        document.getElementById('selectedAreaLabel').innerText = areas[idx].name;
+        updateSpecificAreaMetrics(currentData, idx, type);
+
+        // Update Charts
+        chart1.data.datasets[0].data = currentData.debitur; chart1.update();
+        chart2.data.datasets[0].data = currentData.fasilitas; chart2.update();
+        
+        chart3.data.datasets[0].data = currentData.rate; 
+        if(type === 'b2b' || type === 'renewal') {
+            chart3.data.datasets[1].data = unfitArray;
+        } else {
+            chart3.data.datasets[1].data = [];
+        }
+        chart3.update();
+
+        chart4.data.datasets[0].data = currentData.outstanding; chart4.update();
+    }
+
+    function setMetricLabels(m1, m2, m3, m4, suffix) {
+        document.getElementById('labelAreaMetric1').innerText = m1;
+        document.getElementById('labelAreaMetric2').innerText = m2;
+        document.getElementById('labelAreaMetric3').innerText = m3;
+        document.getElementById('labelAreaMetric4').innerText = m4;
+
+        document.getElementById('labelGabMetric1').innerText = "1. " + m1;
+        document.getElementById('labelGabMetric2').innerText = "2. " + m2;
+        document.getElementById('labelGabMetric3').innerText = "3. " + m3;
+        document.getElementById('labelGabMetric4').innerText = "4. " + m4;
+    }
+
+    function setChartTitles(t1, t2, t3, t4) {
+        document.getElementById('chartTitle1').innerHTML = `<i class="fa-solid fa-chart-bar" style="color: #fbbf24;"></i> ${t1}`;
+        document.getElementById('chartTitle2').innerHTML = `<i class="fa-solid fa-chart-bar" style="color: #a3e635;"></i> ${t2}`;
+        document.getElementById('chartTitle3').innerHTML = `<i class="fa-solid fa-chart-bar" style="color: #38bdf8;"></i> ${t3}`;
+        document.getElementById('chartTitle4').innerHTML = `<i class="fa-solid fa-chart-bar" style="color: #34d399;"></i> ${t4}`;
+    }
+
+    function getMetricSubSuffix(type) {
+        if(type === 'dpd') return "Progres DPD";
+        if(type === 'b2b') return "Kesesuaian Suku Bunga";
+        if(type === 'asuransi') return "Penyelesaian Asuransi";
+        if(type === 'renewal') return "Penyelesaian Renewal & Clean Up";
+        return "";
+    }
+
+    function updateSpecificAreaMetrics(currentData, index, type) {
+        const deb = currentData.debitur[index];
+        const fas = currentData.fasilitas[index];
+        const rate = currentData.rate[index];
+        const out = currentData.outstanding[index];
+        const pctVal = fas > 0 ? ((rate / fas) * 100).toFixed(2) : "0.00";
+
+        document.getElementById('areaMetric1').innerText = deb.toLocaleString('id-ID');
+        document.getElementById('areaMetric2').innerText = fas.toLocaleString('id-ID');
+        document.getElementById('areaMetric3').innerText = rate.toLocaleString('id-ID');
+        document.getElementById('areaMetric3Sub').innerHTML = `<i class="fa-solid fa-circle-info"></i> ${pctVal}% ${getMetricSubSuffix(type)}`;
+        document.getElementById('areaRateProgressBar').style.width = `${pctVal}%`;
+        document.getElementById('areaMetric4').innerText = 'Rp ' + out.toLocaleString('id-ID');
+    }
+
+    function showGreeting() {
+        const toast = document.getElementById('greetingToast');
+        toast.classList.add('show');
+        setTimeout(() => { toast.classList.remove('show'); }, 3500);
+    }
+
+    function exportToPDF() {
+        const downloadBtn = document.getElementById('downloadBtn');
+        const element = document.getElementById('dashboardArea');
+        downloadBtn.classList.add('hide-for-pdf');
+
+        const opt = {
+            margin: [0.2, 0.2, 0.2, 0.2],
+            filename: 'Master_Monitoring_Dashboard.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
+            jsPDF: { unit: 'in', format: 'a3', orientation: 'landscape' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            downloadBtn.classList.remove('hide-for-pdf');
+        });
+    }
+
+    window.onload = function() {
+        initCharts();
+        changeMonitoringType();
+    };
+</script>
+
+</body>
+</html>
